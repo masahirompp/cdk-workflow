@@ -54,7 +54,7 @@ export const runWorkflow = async (options?: {cdkCliOptions?: string[]}) => {
     await execa(
       'cdk',
       ['deploy', ...cdkCliOptions, '--outputs-file', path, ...targetStacks],
-      {stdout: 'pipe', stderr: 'pipe', stdin: 'inherit'},
+      {stdout: 'inherit', stderr: 'inherit', stdin: 'inherit'},
     );
     outputs = JSON.parse(
       await readFile(path, {encoding: 'utf8'}),
