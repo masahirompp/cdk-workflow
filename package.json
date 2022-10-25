@@ -1,6 +1,6 @@
 {
   "name": "cdk-workflow",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "cdk workflow",
   "type": "module",
   "main": "./lib/src/index.js",
@@ -44,11 +44,11 @@
   "devDependencies": {
     "@tsconfig/node16-strictest-esm": "^1.0.3",
     "@types/inquirer": "^9.0.2",
-    "@types/node": "^18.7.23",
-    "aws-cdk": "^2.44.0",
-    "aws-cdk-lib": "^2.44.0",
+    "@types/node": "^18.11.5",
+    "aws-cdk": "^2.47.0",
+    "aws-cdk-lib": "^2.47.0",
     "commitizen": "^4.2.5",
-    "constructs": "^10.1.118",
+    "constructs": "^10.1.139",
     "cz-conventional-changelog": "^3.3.0",
     "dotenv": "^16.0.3",
     "husky": "^8.0.1",
@@ -56,7 +56,7 @@
     "semantic-release": "^19.0.5",
     "ts-node": "^10.9.1",
     "typescript": "^4.8.4",
-    "xo": "^0.52.3"
+    "xo": "^0.52.4"
   },
   "config": {
     "commitizen": {
@@ -72,9 +72,9 @@
     ]
   },
   "dependencies": {
-    "chalk": "^5.0.1",
+    "chalk": "^5.1.2",
     "execa": "^6.1.0",
-    "inquirer": "^9.1.2",
+    "inquirer": "^9.1.4",
     "tmp-promise": "^3.0.3"
   },
   "peerDependencies": {
