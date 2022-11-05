@@ -1,16 +1,23 @@
 import os from 'node:os';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
+import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import {execa} from 'execa';
 import {file} from 'tmp-promise';
+import stripAnsi from 'strip-ansi';
 
 type StackName = string;
 type OutputName = string;
 type OutputValue = string;
 export type StackOutputs = Record<StackName, Record<OutputName, OutputValue>>;
+type StackDiff = {
+  stackName: string;
+  differences: boolean;
+  replacement: boolean;
+};
 
 type WorkflowStep =
 | 'diff -> deploy'
@@ -20,6 +27,7 @@ type WorkflowStep =
 | 'ls(list)'
 | 'synth'
 // | 'DESTROY'
+| 'doctor'
 | 'bootstrap';
 
 const runCdkList = async (stdoutInherit: boolean, cdkCliOptions: string[]) => {
@@ -37,20 +45,69 @@ const runCdkList = async (stdoutInherit: boolean, cdkCliOptions: string[]) => {
 };
 
 const runCdkDiff = async (cdkCliOptions: string[]) => {
-  await execa(
+  const subProcess = execa(
     'cdk',
     ['diff', ...cdkCliOptions],
-    {stdout: 'inherit', stderr: 'inherit', stdin: 'ignore'},
+    {
+      stdout: 'inherit',
+      /**
+       * Point1. AWS CDKのdiffの結果は、stdoutではなくstderrとして出力される
+       * Point2. stderrをstreamに渡すには、stderrに直接streamを設定することはできない。以下のissue参照。
+       * https://github.com/sindresorhus/execa/issues/81
+       */
+      stderr: 'pipe',
+      stdin: 'ignore',
+    },
   );
+
+  /**
+   * Diff結果をstderrに出力しつつ、メモリ上でも取得する。
+   */
+  subProcess.stderr?.pipe(process.stderr);
+  const {stderr: diffResultText} = await subProcess;
+  /** Ex.
+Stack TestStack
+There were no differences
+Stack TestStack2
+There were no differences
+   */
+  const diffList = stripAnsi(diffResultText) // ターミナル向け色指定のエスケープを排除
+    .split(/^Stack /gm)
+    .map(text => {
+      const lines = text.split(os.EOL);
+      return {
+        stackName: lines[0],
+        differences: !lines.includes('There were no differences'),
+        replacement: lines.some(line => line.includes('requires replacement')),
+      };
+    })
+    .filter((r): r is StackDiff => Boolean(r.stackName));
+
+  // リソースの置き換えが発生する場合、警告を表示する
+  const replacements = diffList
+    .filter(d => d.replacement)
+    .map(d => d.stackName);
+  if (replacements.length > 0) {
+    console.log(chalk.bgRedBright.bold(
+      `Caution: Resource replacement occurs in ${replacements.join(', ')}.`,
+    ));
+  }
+
+  return diffList;
 };
 
-const runCdkDeploy = async (stackNames: string[], cdkCliOptions: string[]) => {
+const runCdkDeploy = async (
+  stackNames: string[],
+  cdkCliOptions: string[],
+  diffList: StackDiff[] = [],
+) => {
   // Select deploy stacks
   const {targetStacks} = await inquirer.prompt<{targetStacks: string[]}>({
     type: 'checkbox',
     name: 'targetStacks',
     message: 'please select deploy stacks:',
     choices: stackNames,
+    default: diffList.filter(d => d.differences).map(d => d.stackName),
     validate(input: string[]) {
       if (input.length === 0) {
         return 'stack is not selected.';
@@ -119,6 +176,14 @@ const runCdkBootstrap = async (cdkCliOptions: string[]) => {
   );
 };
 
+const runDoctor = async (cdkCliOptions: string[]) => {
+  await execa(
+    'cdk',
+    ['doctor', ...cdkCliOptions],
+    {stdout: 'inherit', stderr: 'inherit', stdin: 'inherit'},
+  );
+};
+
 const runCdkSynth = async (cdkCliOptions: string[]) => {
   await execa(
     'cdk',
@@ -141,19 +206,21 @@ export const runWorkflow = async (options?: {cdkCliOptions?: string[]}) => {
       'deploy --all --require-approval never',
       'ls(list)',
       'synth',
+      'doctor',
       'bootstrap',
     ],
   });
 
   const cdkCliOptions = options?.cdkCliOptions ?? [];
   let _outputs: StackOutputs | undefined;
+
   switch (workflow) {
     case 'diff -> deploy': {
       console.log(chalk.cyan('load stacks...'));
       const stackNames = await runCdkList(false, cdkCliOptions);
       console.log(chalk.cyan('diff stacks...'));
-      await runCdkDiff(cdkCliOptions);
-      _outputs = await runCdkDeploy(stackNames, cdkCliOptions);
+      const diffList = await runCdkDiff(cdkCliOptions);
+      _outputs = await runCdkDeploy(stackNames, cdkCliOptions, diffList);
       break;
     }
 
@@ -186,6 +253,11 @@ export const runWorkflow = async (options?: {cdkCliOptions?: string[]}) => {
 
     case 'bootstrap': {
       await runCdkBootstrap(cdkCliOptions);
+      break;
+    }
+
+    case 'doctor': {
+      await runDoctor(cdkCliOptions);
       break;
     }
 

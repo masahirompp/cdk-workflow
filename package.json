@@ -15,7 +15,7 @@
     "lint": "xo --fix",
     "prepare": "husky install",
     "semantic-release": "semantic-release",
-    "test:run": "node -r dotenv/config --loader ts-node/esm ./test/test-cli.ts",
+    "test": "node -r dotenv/config --loader ts-node/esm ./test/test-cli.ts",
     "typecheck": "tsc --noEmit"
   },
   "repository": {
@@ -44,11 +44,11 @@
   "devDependencies": {
     "@tsconfig/node16-strictest-esm": "^1.0.3",
     "@types/inquirer": "^9.0.2",
-    "@types/node": "^18.11.5",
-    "aws-cdk": "^2.47.0",
-    "aws-cdk-lib": "^2.47.0",
+    "@types/node": "^18.11.9",
+    "aws-cdk": "^2.50.0",
+    "aws-cdk-lib": "^2.50.0",
     "commitizen": "^4.2.5",
-    "constructs": "^10.1.139",
+    "constructs": "^10.1.150",
     "cz-conventional-changelog": "^3.3.0",
     "dotenv": "^16.0.3",
     "husky": "^8.0.1",
@@ -75,10 +75,12 @@
     "chalk": "^5.1.2",
     "execa": "^6.1.0",
     "inquirer": "^9.1.4",
+    "strip-ansi": "^7.0.1",
     "tmp-promise": "^3.0.3"
   },
   "peerDependencies": {
     "aws-cdk": "^2",
-    "aws-cdk-lib": "^2"
+    "aws-cdk-lib": "^2",
+    "constructs": "^10"
   }
 }
