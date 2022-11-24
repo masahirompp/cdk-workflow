@@ -104,6 +104,7 @@ const runCdkDeploy = async (
   // Select deploy stacks
   const {targetStacks} = await inquirer.prompt<{targetStacks: string[]}>({
     type: 'checkbox',
+    loop: false,
     name: 'targetStacks',
     message: 'please select deploy stacks:',
     choices: stackNames,
@@ -197,6 +198,7 @@ export const runWorkflow = async (options?: {cdkCliOptions?: string[]}) => {
 
   const {workflow} = await inquirer.prompt<{workflow: WorkflowStep}>({
     type: 'list',
+    loop: false,
     name: 'workflow',
     message: 'please select the task you want to run:',
     choices: [
