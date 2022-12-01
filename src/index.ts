@@ -24,6 +24,7 @@ type WorkflowStep =
 | 'diff'
 | 'deploy'
 | 'deploy --all --require-approval never'
+| 'watch'
 | 'ls(list)'
 | 'synth'
 // | 'DESTROY'
@@ -165,6 +166,16 @@ const runCdkDeployAllRequireApprovalNever = async (cdkCliOptions: string[]) => {
   return outputs;
 };
 
+const runCdkWatchAllRequireApprovalNever = async (cdkCliOptions: string[]) => {
+  await execa('cdk', [
+    'watch',
+    ...cdkCliOptions,
+    '--all',
+    '--require-approval',
+    'never',
+  ], {stdout: 'inherit', stderr: 'inherit', stdin: 'inherit'});
+};
+
 const runCdkBootstrap = async (cdkCliOptions: string[]) => {
   const dummyStackFile = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
@@ -206,6 +217,7 @@ export const runWorkflow = async (options?: {cdkCliOptions?: string[]}) => {
       'diff',
       'deploy',
       'deploy --all --require-approval never',
+      'watch',
       'ls(list)',
       'synth',
       'doctor',
@@ -240,6 +252,11 @@ export const runWorkflow = async (options?: {cdkCliOptions?: string[]}) => {
 
     case 'deploy --all --require-approval never': {
       _outputs = await runCdkDeployAllRequireApprovalNever(cdkCliOptions);
+      break;
+    }
+
+    case 'watch': {
+      await runCdkWatchAllRequireApprovalNever(cdkCliOptions);
       break;
     }
 
